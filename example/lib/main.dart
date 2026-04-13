@@ -54,7 +54,7 @@ class _NotificationPermissionDemoPageState
 
     try {
       final status = await _permissionPro.status;
-      final count = await _permissionPro.getRequestCount(); // Fetch request count
+      final count = _permissionPro.getRequestCount(); // Fetch request count
 
       if (mounted) {
         setState(() {

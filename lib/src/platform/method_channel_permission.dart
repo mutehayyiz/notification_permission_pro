@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// Platform channel for native permission checks.
@@ -27,7 +28,7 @@ class MethodChannelPermission {
       }
       return Map<String, dynamic>.from(result);
     } on PlatformException catch (e) {
-      print('Error getting permission status: ${e.message}');
+      if (kDebugMode) print('Error getting permission status: ${e.message}');
       return {'status': 'unknown', 'timestamp': DateTime.now().millisecondsSinceEpoch};
     }
   }
@@ -42,7 +43,7 @@ class MethodChannelPermission {
       );
       return result ?? false;
     } on PlatformException catch (e) {
-      print('Error requesting permission: ${e.message}');
+      if (kDebugMode) print('Error requesting permission: ${e.message}');
       return false;
     }
   }
@@ -52,7 +53,7 @@ class MethodChannelPermission {
     try {
       await _channel.invokeMethod<void>(_methodOpenSettings);
     } on PlatformException catch (e) {
-      print('Error opening app settings: ${e.message}');
+      if (kDebugMode) print('Error opening app settings: ${e.message}');
     }
   }
 }
