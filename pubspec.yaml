@@ -1,9 +1,9 @@
 name: notification_permission_pro
 description: A lightweight, production-ready Flutter package providing unified notification permission state across iOS and Android.
-version: 1.0.0
-homepage: https://github.com/yourusername/notification_permission_pro
-repository: https://github.com/yourusername/notification_permission_pro
-issue_tracker: https://github.com/yourusername/notification_permission_pro/issues
+version: 1.0.1
+homepage: https://github.com/mutehayyiz/notification_permission_pro
+repository: https://github.com/mutehayyiz/notification_permission_pro
+issue_tracker: https://github.com/mutehayyiz/notification_permission_pro/issues
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

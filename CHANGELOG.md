@@ -5,28 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.1] - 2026-04-13
 
 ### Fixed
-- iOS plugin now correctly conforms to `FlutterPlugin` protocol using `FlutterPluginRegistrar`
-- iOS `register(with:)` method now uses correct `registrar.messenger()` API
-- Android plugin class renamed to `NotificationPermissionPro` for consistency with pubspec.yaml
-- Example app now uses singleton instance pattern correctly
-- Example app request permission method now properly handles bool return value
-- Example app type safety improved with correct Dart types
-
-### Added
-- iOS CocoaPods podspec (`ios/notification_permission_pro.podspec`) for proper plugin distribution
-- iOS platform configuration in example app Info.plist
-- Android platform configuration in example app AndroidManifest.xml
-- Example app now fully tested and running on iOS 17.4 simulator
-- Deep linking support for opening app settings
-
-### Improved
-- iOS plugin code now includes detailed comments for protocol conformance
-- Example app UI now shows request history tracking
-- Example app includes permission states documentation
-- Better error handling in example app with user-friendly messaging
+- Corrected GitHub repository URL from placeholder to actual repository URL
+- Fixed Dart analyzer issues (deprecated lints and type safety warnings)
+- Removed deprecated `invariant_booleans` lint from analysis_options.yaml
+- Added `kDebugMode` guards to debug print statements
 
 ## [1.0.0] - 2026-04-13
 
