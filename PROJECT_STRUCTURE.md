@@ -18,14 +18,15 @@ notification_permission_pro/
 ├── android/
 │   ├── src/main/
 │   │   ├── kotlin/com/example/notification_permission_pro/
-│   │   │   └── NotificationPermissionProPlugin.kt   # Android native implementation
-│   │   └── AndroidManifest.xml                      # Android permissions
-│   ├── build.gradle                                  # Android build config
+│   │   │   └── NotificationPermissionPro.kt         # Android native implementation (Kotlin)
+│   │   └── AndroidManifest.xml                      # Android permissions & app config
+│   ├── build.gradle                                  # Android build config (Gradle)
 │   └── pubspec.yaml
 │
 ├── ios/
 │   ├── Classes/
-│   │   └── NotificationPermissionProPlugin.swift    # iOS native implementation
+│   │   └── NotificationPermissionProPlugin.swift    # iOS native implementation (Swift)
+│   ├── notification_permission_pro.podspec          # CocoaPods pod specification
 │   └── pubspec.yaml
 │
 ├── example/
@@ -76,14 +77,26 @@ notification_permission_pro/
   - Native communication
 
 ### Platform Code
-- **NotificationPermissionProPlugin.swift** (150 lines)
-  - iOS implementation using UNUserNotificationCenter
-  - Permission request/check/settings
+- **NotificationPermissionProPlugin.swift** (150 lines, iOS)
+  - Swift implementation using UNUserNotificationCenter
+  - All iOS authorization status types: authorized, provisional, ephemeral, denied, notDetermined, restricted
+  - Permission request dialog handling
+  - App settings navigation
+  - Proper FlutterPlugin protocol conformance
+  - Async/await with completion handlers
   
-- **NotificationPermissionProPlugin.kt** (150 lines)
-  - Android implementation with API level handling
-  - POST_NOTIFICATIONS permission
-  - System toggle detection
+- **notification_permission_pro.podspec** (iOS)
+  - CocoaPods pod specification for iOS plugin distribution
+  - Swift 5.0+ configuration
+  - Platform minimum requirement: iOS 11.0
+  - Simulator architecture exclusion configuration
+  
+- **NotificationPermissionPro.kt** (150 lines, Android)
+  - Kotlin implementation with multi-API level support
+  - Android 4.3+ compatibility
+  - Android 13+ POST_NOTIFICATIONS runtime permission
+  - System notification toggle detection
+  - FlutterPlugin & ActivityAware protocol implementation
 
 ### Tests
 - **permission_state_test.dart** (60 lines)

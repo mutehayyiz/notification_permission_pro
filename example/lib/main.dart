@@ -3,250 +3,424 @@ import 'package:notification_permission_pro/notification_permission_pro.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize the notification permission package
   await NotificationPermissionPro.initialize();
-  
-  runApp(const MyApp());
+  runApp(const NotificationPermissionProApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+class NotificationPermissionProApp extends StatelessWidget {
+  const NotificationPermissionProApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+
     return MaterialApp(
-      title: 'Notification Permission Pro Example',
+      title: 'Notification Permission Pro',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const PermissionPage(),
+      home: const NotificationPermissionDemoPage(),
     );
   }
 }
 
-class PermissionPage extends StatefulWidget {
-  const PermissionPage({Key? key}) : super(key: key);
+class NotificationPermissionDemoPage extends StatefulWidget {
+  const NotificationPermissionDemoPage({super.key});
 
   @override
-  State<PermissionPage> createState() => _PermissionPageState();
+  State<NotificationPermissionDemoPage> createState() =>
+      _NotificationPermissionDemoPageState();
 }
 
-class _PermissionPageState extends State<PermissionPage> {
-  final _permissionPro = NotificationPermissionPro();
-  late Future<PermissionState> _statusFuture;
+class _NotificationPermissionDemoPageState
+    extends State<NotificationPermissionDemoPage> {
+  late NotificationPermissionPro _permissionPro;
+  PermissionState _permissionState = PermissionState.unknown;
+  bool _isLoading = false;
+  String _statusMessage = '';
+  int _requestCount = 0;
 
   @override
   void initState() {
     super.initState();
-    _statusFuture = _permissionPro.status;
+    _permissionPro = NotificationPermissionPro();
+    _loadPermissionStatus();
+  }
+
+  Future<void> _loadPermissionStatus() async {
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
+
+    try {
+      final status = await _permissionPro.status;
+      final count = await _permissionPro.getRequestCount(); // Fetch request count
+
+      if (mounted) {
+        setState(() {
+          _permissionState = status;
+          _requestCount = count;
+          _statusMessage = 'Status loaded: ${status.description}';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _statusMessage = 'Error: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _requestPermission() async {
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
+
+    try {
+      final granted = await _permissionPro.requestPermission();
+
+      if (mounted) {
+        setState(() {
+          _statusMessage = granted
+              ? 'Permission granted! 🎉'
+              : 'Permission not granted - please enable in settings';
+          _isLoading = false;
+        });
+      }
+
+      // Reload to get updated status and request count
+      await _loadPermissionStatus();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _statusMessage = 'Request failed: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _refreshStatus() async {
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
+
+    try {
+      await _permissionPro.refresh();
+      await _loadPermissionStatus();
+
+      if (mounted) {
+        setState(() => _statusMessage = 'Status refreshed!');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _statusMessage = 'Refresh failed: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _openSettings() async {
+    try {
+      await _permissionPro.openAppSettings();
+      if (mounted) {
+        setState(() => _statusMessage = 'Opened app settings');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _statusMessage = 'Failed to open settings: $e');
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notification Permissions'),
+        title: const Text('Notification Permission Pro'),
+        elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Feature 1: Current Permission Status Display
+                    _buildStatusCard(),
+                    const SizedBox(height: 16),
+
+                    // Feature 2: Request Permission Button
+                    _buildActionButton(
+                      label: 'Request Permission',
+                      onPressed: _requestPermission,
+                      color: Colors.blue,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Feature 3: Refresh Status Button
+                    _buildActionButton(
+                      label: 'Refresh Status',
+                      onPressed: _refreshStatus,
+                      color: Colors.green,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Feature 4: Open Settings Button
+                    _buildActionButton(
+                      label: 'Open App Settings',
+                      onPressed: _openSettings,
+                      color: Colors.orange,
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Feature 5: Request History
+                    _buildRequestHistoryCard(),
+                    const SizedBox(height: 16),
+
+                    // Feature 6: Permission States Documentation
+                    _buildPermissionStatesCard(),
+                    const SizedBox(height: 16),
+
+                    // Feature 7: Status Message
+                    _buildStatusMessageCard(),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+
+  Widget _buildStatusCard() {
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Permission Status',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            FutureBuilder<PermissionState>(
-              future: _statusFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                }
-
-                final state = snapshot.data ?? PermissionState.unknown;
-                return _StatusCard(state: state);
-              },
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Actions',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            _ActionButton(
-              label: 'Check Status',
-              onPressed: () {
-                setState(() {
-                  _statusFuture = _permissionPro.refresh();
-                });
-              },
+              'Current Permission Status',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            _ActionButton(
-              label: 'Request Permission',
-              onPressed: () async {
-                final granted = await _permissionPro.requestPermission();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        granted
-                            ? 'Permission granted!'
-                            : 'Permission denied or current state prevents request',
-                      ),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _getColorForState(_permissionState),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  _getIconForState(_permissionState),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _permissionState.toString().split('.').last.toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          _permissionState.description,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                  setState(() {
-                    _statusFuture = _permissionPro.status;
-                  });
-                }
-              },
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            _ActionButton(
-              label: 'Open App Settings',
-              onPressed: () async {
-                await _permissionPro.openAppSettings();
-              },
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Debug Info',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            _DebugInfo(permissionPro: _permissionPro),
           ],
         ),
       ),
     );
   }
-}
 
-class _StatusCard extends StatelessWidget {
-  final PermissionState state;
+  Widget _buildActionButton({
+    required String label,
+    required VoidCallback onPressed,
+    required Color color,
+  }) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white, fontSize: 14),
+      ),
+    );
+  }
 
-  const _StatusCard({required this.state});
+  Widget _buildRequestHistoryCard() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Request History',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Total Requests: $_requestCount',
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'The package tracks how many times permission has been requested.',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    Color statusColor;
-    String statusTitle;
+  Widget _buildPermissionStatesCard() {
+    final states = [
+      ('granted', 'User granted permission - can send notifications'),
+      ('denied', 'User denied permission - cannot send notifications'),
+      ('notRequested', 'Permission not yet requested from user'),
+      ('permanentlyDenied', 'User denied and disabled - requires settings'),
+      ('restricted', 'System restricted - user cannot change (iOS only)'),
+      ('unknown', 'Permission state could not be determined'),
+    ];
 
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Permission States',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            ...states.map((state) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '• ',
+                      style: TextStyle(fontSize: 14, color: Colors.blue[600]),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            state.$1,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            state.$2,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusMessageCard() {
+    return Card(
+      elevation: 2,
+      color: _statusMessage.contains('Error') || _statusMessage.contains('failed')
+          ? Colors.red[50]
+          : Colors.green[50],
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Icon(
+              _statusMessage.contains('Error') || _statusMessage.contains('failed')
+                  ? Icons.error
+                  : Icons.info,
+              color: _statusMessage.contains('Error') || _statusMessage.contains('failed')
+                  ? Colors.red
+                  : Colors.green,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _statusMessage.isEmpty ? 'Ready' : _statusMessage,
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getColorForState(PermissionState state) {
     switch (state) {
       case PermissionState.granted:
-        statusColor = Colors.green;
-        statusTitle = '✓ Notifications Enabled';
-        break;
+        return Colors.green;
       case PermissionState.denied:
-        statusColor = Colors.red;
-        statusTitle = '✗ Denied';
-        break;
+        return Colors.red;
       case PermissionState.notRequested:
-        statusColor = Colors.orange;
-        statusTitle = '? Not Requested';
-        break;
+        return Colors.blue;
       case PermissionState.permanentlyDenied:
-        statusColor = Colors.darkRed;
-        statusTitle = '✗ Permanently Denied';
-        break;
+        return Colors.red.shade700;
       case PermissionState.restricted:
-        statusColor = Colors.purple;
-        statusTitle = '🔒 Restricted (System)';
-        break;
+        return Colors.orange;
       case PermissionState.unknown:
-        statusColor = Colors.grey;
-        statusTitle = '⚠ Unknown';
-        break;
+        return Colors.grey;
     }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.1),
-        border: Border.all(color: statusColor, width: 2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            statusTitle,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: statusColor,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Current State: ${state.description}',
-            style: TextStyle(color: statusColor),
-          ),
-        ],
-      ),
-    );
   }
-}
 
-class _ActionButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onPressed;
-
-  const _ActionButton({
-    required this.label,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        child: Text(label),
-      ),
-    );
-  }
-}
-
-class _DebugInfo extends StatelessWidget {
-  final NotificationPermissionPro permissionPro;
-
-  const _DebugInfo({required this.permissionPro});
-
-  @override
-  Widget build(BuildContext context) {
-    final requestCount = permissionPro.getRequestCount();
-    final wasRequested = permissionPro.wasPermissionRequested();
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Permission Requested: ${wasRequested ? "Yes" : "No"}',
-            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Request Count: $requestCount',
-            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-          ),
-        ],
-      ),
-    );
+  Widget _getIconForState(PermissionState state) {
+    switch (state) {
+      case PermissionState.granted:
+        return const Icon(Icons.check_circle, color: Colors.white, size: 24);
+      case PermissionState.denied:
+        return const Icon(Icons.cancel, color: Colors.white, size: 24);
+      case PermissionState.notRequested:
+        return const Icon(Icons.help, color: Colors.white, size: 24);
+      case PermissionState.permanentlyDenied:
+        return const Icon(Icons.block, color: Colors.white, size: 24);
+      case PermissionState.restricted:
+        return const Icon(Icons.lock, color: Colors.white, size: 24);
+      case PermissionState.unknown:
+        return const Icon(Icons.help_outline, color: Colors.white, size: 24);
+    }
   }
 }

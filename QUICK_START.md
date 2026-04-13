@@ -1,5 +1,31 @@
 # Quick Start Guide
 
+## Try the Example App
+
+The fastest way to see the package in action is to run the included example app:
+
+### iOS Simulator
+```bash
+cd example
+flutter run -d "iPhone 17 Pro Max"  # or your available simulator
+```
+
+### Android Emulator  
+```bash
+cd example
+flutter run -d "emulator-5554"  # or your emulator id
+```
+
+The example app demonstrates:
+- ✅ Checking current permission status
+- ✅ Requesting user permission
+- ✅ Refreshing status (bypasses 5-second cache)
+- ✅ Opening app settings for manual permission changes
+- ✅ Displaying request history
+- ✅ Color-coded permission state indicators
+
+---
+
 ## Installation & Setup
 
 ### 1. Add to pubspec.yaml

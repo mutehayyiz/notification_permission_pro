@@ -1,48 +1,52 @@
-import UserNotifications
 import Flutter
+import UIKit
+import UserNotifications
 
-public class NotificationPermissionProPlugin: NSObject, FlutterPlugin {
-  public static func dummy(methodCall: FlutterMethodCall, result: @escaping FlutterResult) {
-    // This is needed to make this a valid plugin
-  }
-
-  public static func register(with registrar: FlutterPluginRegistry) {
+public class NotificationPermissionPro: NSObject, FlutterPlugin {
+  /// Required: Register the plugin with the Flutter engine
+  /// This is called automatically by Flutter during app initialization
+  public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(
       name: "notification_permission_pro/channel",
-      binaryMessenger: registrar.messenger(forPlugin: "notification_permission_pro")
+      binaryMessenger: registrar.messenger()
     )
-    let instance = NotificationPermissionProPlugin()
+    let instance = NotificationPermissionPro()
     registrar.addMethodCallDelegate(instance, channel: channel)
   }
 
-  public func dummyMethodToEnforceBundling() {
-    // This is needed to make this a valid plugin
-  }
+  /// Required: Dummy method for FutterPlugin protocol conformance
+  /// Ensures plugin is properly linked and not stripped by linker
+  public static func dummyMethodToEnforceBundling() {}
 
-  public func handleMethodCall(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+  public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+
     switch call.method {
+
     case "getPermissionStatus":
       getPermissionStatus(result: result)
+
     case "requestPermission":
       requestPermission(result: result)
+
     case "openAppSettings":
       openAppSettings(result: result)
+
     default:
       result(FlutterMethodNotImplemented)
     }
   }
 
-  /// Get current notification permission status.
   private func getPermissionStatus(result: @escaping FlutterResult) {
     UNUserNotificationCenter.current().getNotificationSettings { settings in
+
       let status: String
+
       switch settings.authorizationStatus {
       case .authorized:
         status = "authorized"
       case .provisional:
         status = "provisional"
       case .ephemeral:
-        // iOS 14+
         status = "ephemeral"
       case .denied:
         status = "denied"
@@ -52,39 +56,37 @@ public class NotificationPermissionProPlugin: NSObject, FlutterPlugin {
         status = "unknown"
       }
 
-      let resultDict: [String: Any] = [
+      result([
         "status": status,
-        "timestamp": Int64(Date().timeIntervalSince1970 * 1000),
-      ]
-      result(resultDict)
+        "timestamp": Int64(Date().timeIntervalSince1970 * 1000)
+      ])
     }
   }
 
-  /// Request notification permission from the user.
   private func requestPermission(result: @escaping FlutterResult) {
-    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+    UNUserNotificationCenter.current().requestAuthorization(
+      options: [.alert, .sound, .badge]
+    ) { granted, error in
+
       if let error = error {
-        print("Error requesting notification permission: \(error.localizedDescription)")
+        print("Permission error: \(error)")
         result(false)
         return
       }
+
       result(granted)
     }
   }
 
-  /// Open app settings where user can modify notification permissions.
   private func openAppSettings(result: @escaping FlutterResult) {
     DispatchQueue.main.async {
-      if let url = URL(string: UIApplication.openSettingsURLScheme + "://notification") {
-        UIApplication.shared.open(url, options: [:]) { success in
-          result(success)
-        }
-      } else if let url = URL(string: UIApplication.openSettingsURLScheme) {
-        UIApplication.shared.open(url, options: [:]) { success in
-          result(success)
-        }
-      } else {
+      guard let url = URL(string: UIApplication.openSettingsURLString) else {
         result(false)
+        return
+      }
+
+      UIApplication.shared.open(url) { success in
+        result(success)
       }
     }
   }

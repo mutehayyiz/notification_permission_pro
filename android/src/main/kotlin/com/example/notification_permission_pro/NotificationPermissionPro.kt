@@ -13,8 +13,8 @@ import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodChannel
 
-/** NotificationPermissionProPlugin */
-class NotificationPermissionProPlugin : FlutterPlugin, ActivityAware {
+/** NotificationPermissionPro */
+class NotificationPermissionPro : FlutterPlugin, ActivityAware {
   private lateinit var channel: MethodChannel
   private var activityBinding: ActivityPluginBinding? = null
   private lateinit var context: Context
