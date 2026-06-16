@@ -103,6 +103,9 @@ app.*.map.json
 **/android/**/captures/
 **/android/**/gradlew*
 **/android/**/*.gradle
+# Re-include plugin build files that must be tracked
+!**/android/**/build.gradle
+!**/android/**/build.gradle.kts
 
 # Web
 lib/generated_plugin_registrant.dart
