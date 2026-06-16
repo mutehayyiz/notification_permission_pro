@@ -7,12 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.2] - 2026-06-17
 
+### Added
+- New test file `test/method_channel_permission_test.dart` (13 tests) covering the platform channel bridge:
+  - `getPermissionStatus` with iOS and Android response shapes, null response, and `PlatformException` fallback
+  - `requestPermission` for granted/denied/null/`PlatformException` cases
+  - `openAppSettings` method routing and `PlatformException` safety
+- Total unit test count raised from 34 to 47
+
 ### Fixed
 - Added missing `android/build.gradle` with correct namespace (`com.example.notification_permission_pro`), `compileSdk 34`, `minSdk 21`, Java/Kotlin 17
 - Fixed `.gitignore` to no longer suppress `android/build.gradle` (added `!**/android/**/build.gradle` exception)
 - Fixed iOS `pluginClass` mismatch in `ios/pubspec.yaml` (was `NotificationPermissionProPlugin`, now matches actual Swift class `NotificationPermissionPro`)
 - Fixed podspec placeholder values: updated `homepage`, `author`, and `email` to real project values
 - Fixed wrong Android file path in `ARCHITECTURE.md` (was `NotificationPermissionProPlugin.kt`, now `NotificationPermissionPro.kt`)
+
+### Removed
+- Deleted internal/development-only documentation files that are not useful to package consumers:
+  `START_HERE.md`, `FILE_MANIFEST.md`, `IMPLEMENTATION_COMPLETE.md`, `PACKAGE_OVERVIEW.md`,
+  `COMPLETION_REPORT.txt`, `PROJECT_STRUCTURE.md`, `QUICK_START.md`
+
+### Changed
+- Rewrote `DEVELOPER_GUIDE.md`: removed ADR section, internal checklists, and speculative performance examples; kept only contributor-facing content
+- Cleaned `ARCHITECTURE.md`: removed placeholder integration test section, production readiness checklist, extensibility list, and speculative performance figures; updated Testing Strategy to include the new platform channel test
 
 ## [1.0.1] - 2026-04-13
 
