@@ -10,9 +10,9 @@ Pod::Spec.new do |s|
 notification_permission_pro provides a unified and reliable abstraction layer for
 notification permission status across iOS and Android platforms.
                        DESC
-  s.homepage         = 'https://github.com/yourusername/notification_permission_pro'
+  s.homepage         = 'https://github.com/mutehayyiz/notification_permission_pro'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Flutter Developer' => 'dev@example.com' }
+  s.author           = { 'Ahmet Şenharputlu' => 'ahmet.senharputlu@gmail.com' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.public_header_files = 'Classes/**/*.h'

@@ -254,7 +254,7 @@ Would test:
 
 ### Android Implementation
 
-**File**: `android/src/main/kotlin/.../NotificationPermissionProPlugin.kt`
+**File**: `android/src/main/kotlin/.../NotificationPermissionPro.kt`
 
 **Key Methods**:
 - `getPermissionStatus()` - Combines runtime permission + system toggle
