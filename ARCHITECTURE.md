@@ -202,39 +202,30 @@ Return boolean to user
 ### Unit Tests
 
 1. **Permission State Tests** (`test/permission_state_test.dart`)
-   - Verify enum properties
-   - Test description strings
+   - Enum properties and extension methods
+   - Human-readable description strings
 
 2. **Detector Tests** (`test/permission_detector_test.dart`)
    - iOS normalization rules
    - Android normalization rules
-   - Request history handling
+   - Request history handling (`denied` vs `permanentlyDenied`)
+   - `shouldRequestPermission` / `shouldOpenSettings` helpers
 
 3. **Storage Tests** (`test/permission_storage_test.dart`)
    - Persistence operations
-   - Cache validation
-   - Request tracking
+   - Cache validation (timestamp-based)
+   - Request tracking and counter
 
-### Integration Tests
-
-Would test:
-- End-to-end permission flow
-- Platform channel integration
-- State consistency across calls
+4. **Platform Channel Tests** (`test/method_channel_permission_test.dart`)
+   - Mock native responses for iOS and Android shapes
+   - Null / PlatformException graceful fallbacks
+   - `getPermissionStatus`, `requestPermission`, `openAppSettings` method routing
 
 ## Performance Considerations
 
-**Optimization Techniques**:
-
-1. **Caching** - 5-second TTL reduces native calls
-2. **Singleton** - Single instance per app
-3. **Lazy Initialization** - Storage initialized on demand
-4. **Efficient Storage** - SharedPreferences (fast, simple)
-
-**Characteristics**:
-- Memory: ~2KB unpacked
-- Time to first status: ~50-100ms
-- Cached status lookup: <1ms
+- **5-second cache TTL** — keeps native call count low; use `refresh()` when you need guaranteed freshness
+- **Singleton** — single instance, single cache
+- **SharedPreferences** — lightweight, synchronous after init
 
 ## Platform-Specific Implementation
 
@@ -266,33 +257,9 @@ Would test:
 - Combines multiple permission sources
 - Returns timestamp for cache validation
 
-## Extensibility
-
-**Future Enhancement Points**:
-
-1. **Multiple Permission Types**: Extend enum for calendar, contacts, etc.
-2. **Batch Operations**: Check multiple permissions at once
-3. **Permission Groups**: Group related permissions
-4. **Analytics**: Add telemetry integration
-5. **Custom Storage**: Allow alternate storage backends
-
-## Production Readiness Checklist
-
-✅ Error handling  
-✅ Caching strategy  
-✅ Platform separation  
-✅ Normalization logic  
-✅ State persistence  
-✅ Request history tracking  
-✅ Debug logging  
-✅ Unit tests  
-✅ Example app  
-✅ Documentation  
-
 ## Security Considerations
 
 - No sensitive data stored
-- Permissions handled by OS
+- Permissions handled by the OS
 - No network communication
-- No external dependencies (except SharedPreferences)
-- No eval/dynamic code execution
+- No external dependencies (except `shared_preferences`)

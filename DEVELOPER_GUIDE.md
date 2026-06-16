@@ -1,22 +1,8 @@
 # Developer Guide
 
-## Overview for Contributors
-
-This guide explains how the package works internally and how to extend or modify it.
-
 ## Understanding the Permission States
 
-### The Problem This Package Solves
-
-Initially, developers had to handle:
-- **iOS**: 5+ different authorization statuses
-- **Android**: 3+ separate checks (runtime permission, system toggle, OEM restrictions)
-
-This created inconsistent, fragmented code across platforms.
-
-### The Solution: Unified State Model
-
-The package normalizes all of this into 6 clear states:
+The package normalizes platform-specific states into 6 unified states:
 
 ```
 PermissionState enum:
@@ -32,91 +18,63 @@ PermissionState enum:
 
 ### Step 1: Platform Detection
 
-The `PermissionDetector` class identifies whether the raw status is from iOS or Android:
-
-```dart
-bool _isIosStatus(String status) {
-  const iosStatuses = ['authorized', 'provisional', 'denied', ...];
-  return iosStatuses.contains(status.toLowerCase());
-}
-```
+`PermissionDetector` identifies whether the raw status is from iOS or Android based on the status string.
 
 ### Step 2: Platform-Specific Mapping
 
-Each platform has unique states that map differently:
-
 **iOS Mapping**:
 ```
-authorized  → granted
-provisional → granted (partial)
+authorized    → granted
+provisional   → granted (delivers silently)
+ephemeral     → granted (current session only)
 notDetermined → notRequested
-denied → permanently_denied (if requested) OR denied (if not)
-restricted → restricted
+denied        → permanentlyDenied (if previously requested) | denied
+restricted    → restricted
 ```
 
 **Android Mapping**:
 ```
-granted → granted
+granted      → granted
 notrequested → notRequested
-denied → permanently_denied (if requested) OR denied (if not)
-restricted → restricted
+denied       → permanentlyDenied (if previously requested) | denied
+restricted   → restricted
 ```
 
 ### Step 3: History-Aware Decision
 
-The normalization combines platform state with request history:
+Normalization combines platform state with local request history:
 
 ```dart
-PermissionState _normalizeIosStatus(String status, bool wasRequested) {
-  switch (status.toLowerCase()) {
-    case 'denied':
-      // Was permission requested before?
-      return wasRequested
-          ? PermissionState.permanentlyDenied  // User explicitly denied
-          : PermissionState.denied;            // Just declined
-    // ...
-  }
-}
+case 'denied':
+  return wasRequested
+      ? PermissionState.permanentlyDenied  // User explicitly denied after prompt
+      : PermissionState.denied;            // Declined without a prior request
 ```
 
-**Why**:
-- Distinguishes between "never asked" and "asked but refused"
-- Helps decide if we should ask again (don't ask permanent denials)
-- Tracks request history in local storage
+This distinction helps avoid re-requesting permission when already permanently denied.
 
-### Step 4: Caching for Performance
+### Step 4: Caching
 
-Result is cached with timestamp:
-
-```dart
-await _storage.setState(platformStatus);
-_cachedState = normalizedState;
-```
-
-Next request within 5 seconds uses cache instead of querying platform.
+Result is cached for 5 seconds. Next call within that window returns the cached state. Use `refresh()` to bypass the cache.
 
 ## Adding Support for New Platforms
 
-Example: Add Web support
+Example: Add Web support.
 
 ### 1. Create Web Implementation
 
-Create `web/notification_permission_pro_web_plugin.dart`:
-
 ```dart
+// web/notification_permission_pro_web_plugin.dart
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 
 class NotificationPermissionProWeb {
-  // Use JavaScript Notification API
   Future<Map<String, dynamic>> getPermissionStatus() async {
-    // Call JS to check Notification.permission
+    // Call JS Notification API
   }
 }
 ```
 
-### 2. Register Plugin
-
-Update `pubspec.yaml`:
+### 2. Register in pubspec.yaml
 
 ```yaml
 flutter:
@@ -129,9 +87,8 @@ flutter:
 
 ### 3. Add Platform Detection
 
-Update `method_channel_permission.dart` to handle web:
-
 ```dart
+// method_channel_permission.dart
 if (kIsWeb) {
   return WebNotificationService.getStatus();
 }
@@ -139,314 +96,102 @@ if (kIsWeb) {
 
 ### 4. Add Web Normalization
 
-Update `permission_detector.dart`:
-
 ```dart
 bool _isWebStatus(String status) {
   const webStatuses = ['granted', 'denied', 'default'];
   return webStatuses.contains(status.toLowerCase());
 }
-
-PermissionState _normalizeWebStatus(String status, bool wasRequested) {
-  // Web normalization logic
-}
 ```
 
 ## Extending the Permission State Model
 
-Example: Add "warning" state for provisonal iOS permissions
-
-### 1. Update Enum
+Example: Separate `provisional` into its own state.
 
 ```dart
-enum PermissionState {
-  granted,
-  denied,
-  notRequested,
-  permanentlyDenied,
-  restricted,
-  warning,        // NEW: Provisional/ephemeral on iOS
-  unknown,
-}
-```
+// 1. Add to enum
+enum PermissionState { ..., provisional, ... }
 
-### 2. Add Extension Methods
+// 2. Add extension
+bool get isProvisional => this == PermissionState.provisional;
 
-```dart
-extension PermissionStateExtension on PermissionState {
-  bool get isWarning => this == PermissionState.warning;
-}
-```
-
-### 3. Update Normalization
-
-```dart
-PermissionState _normalizeIosStatus(String status, bool wasRequested) {
-  switch (status.toLowerCase()) {
-    case 'provisional':
-    case 'ephemeral':
-      return PermissionState.warning;  // NEW
-    // ...
-  }
-}
+// 3. Update normalization
+case 'provisional':
+  return PermissionState.provisional;
 ```
 
 ## Debugging
 
-### Enable Debug Logging
-
-The package logs in debug mode:
-
-```dart
-if (kDebugMode) {
-  print('Error refreshing permission status: $e');
-}
-```
-
-### Check Cached State
-
-```dart
-final detector = permissionPro._detector;
-final storage = permissionPro._storage;
-
-print(storage.getState());              // Raw platform status
-print(storage.getStateTimestamp());     // When it was last checked
-print(storage.wasPermissionRequested()); // Request history
-```
-
 ### Bypass Cache
-
-Always get fresh status:
 
 ```dart
 final status = await permissionPro.refresh();
 ```
 
-### Clear Cache (Testing)
+### Clear Cache (Testing Only)
 
 ```dart
 await permissionPro.clearStorage();
 ```
 
-## Testing Locally
-
-### Unit Tests
-
-Run all tests:
+## Testing
 
 ```bash
+# Run all tests
 flutter test
-```
 
-Run specific test file:
-
-```bash
+# Run a specific test file
 flutter test test/permission_detector_test.dart
 ```
 
-### Manual Testing
+For manual testing, run the example app:
 
-1. Run example app:
 ```bash
 cd example
 flutter run
 ```
 
-2. Use the UI to:
-   - Check current status
-   - Request permission
-   - Open app settings
-   - View request count and history
-
-3. Test state transitions:
-   - Grant → Check state
-   - Open settings → Change permission → Return to app → Refresh
-   - Request multiple times → Check request count
-
-### Real Device Testing Requirements
-
-- **iOS**: Physical iPhone (simulator permissions differ)
-- **Android**: Physical Android device or emulator with Play Services
-
-## Performance Optimization Tips
-
-### 1. Use Cache Wisely
-
-✅ **Good**: Check status frequently (uses cache)
-```dart
-// Called multiple times per second = uses cache
-for (int i = 0; i < 100; i++) {
-  await permissionPro.status;  // Only queries platform on first call
-}
-```
-
-❌ **Bad**: Bypass cache unnecessarily
-```dart
-// Wastes platform calls
-for (int i = 0; i < 100; i++) {
-  await permissionPro.refresh();  // Queries platform every time
-}
-```
-
-### 2. Lazy Initialize
-
-Only initialize when needed:
-
-```dart
-class PermissionService {
-  static NotificationPermissionPro? _instance;
-  
-  static Future<NotificationPermissionPro> getInstance() async {
-    if (_instance == null) {
-      await NotificationPermissionPro.initialize();
-      _instance = NotificationPermissionPro();
-    }
-    return _instance!;
-  }
-}
-```
-
-### 3. Batch Operations
-
-Group permission checks:
-
-```dart
-// Efficient: Single initialization
-await NotificationPermissionPro.initialize();
-final permissionPro = NotificationPermissionPro();
-
-final status1 = await permissionPro.status;
-final status2 = await permissionPro.status;  // Uses cache
-```
+> **Real device note**: iOS simulator permission behaviour differs from a physical device. For production validation, test on real hardware.
 
 ## Common Mistakes & Fixes
 
-### Mistake 1: Not Initializing
+### Not Initializing
 
 ```dart
-// ❌ WRONG - StateError thrown
+// ❌ StateError thrown
 final status = await permissionPro.status;
 
-// ✅ CORRECT
+// ✅
 await NotificationPermissionPro.initialize();
 final status = await permissionPro.status;
 ```
 
-### Mistake 2: Ignoring Unknown State
+### Ignoring Unknown State
 
 ```dart
-// ❌ WRONG - Assumes unknown means denied
-if (state != PermissionState.granted) {
-  return false;
-}
+// ❌ Treats unknown as denied
+if (state != PermissionState.granted) return false;
 
-// ✅ CORRECT - Handle unknown explicitly
-if (state.isUnknown) {
-  // Retry or handle error
-  return null;  // Indeterminate
-}
+// ✅
+if (state.isUnknown) return null; // Indeterminate — retry or handle explicitly
 ```
 
-### Mistake 3: Requesting Persistently
+### Not Refreshing After Settings
 
 ```dart
-// ❌ WRONG - Spams user with permission dialogs
-Stream.periodic(Duration(seconds: 1))
-    .listen((_) => permissionPro.requestPermission());
-
-// ✅ CORRECT - Request only once
-if (status.isNotRequested) {
-  await permissionPro.requestPermission();
-}
-```
-
-### Mistake 4: Not Refreshing After Settings
-
-```dart
-// ❌ WRONG - User changes settings, but app shows cached denied
+// ❌ Shows stale cached state
 await permissionPro.openAppSettings();
 
-// ✅ CORRECT - Refresh when returning
-onReturn() {
-  final newStatus = await permissionPro.refresh();
-}
+// ✅
+await permissionPro.openAppSettings();
+// ... when user returns:
+final newStatus = await permissionPro.refresh();
 ```
-
-## Code Review Checklist
-
-Before submitting changes:
-
-- [ ] All unit tests pass (`flutter test`)
-- [ ] No lint errors (`flutter analyze`)
-- [ ] iOS implementation handles all `UNNotificationSettings` cases
-- [ ] Android implementation handles API levels (8+, 13+)
-- [ ] Error handling with try-catch
-- [ ] Debug logging in debug mode only
-- [ ] Documentation updated
-- [ ] Example app still works
-- [ ] No external dependencies added
 
 ## Release Checklist
 
-Before publishing:
-
-- [ ] Update version in `pubspec.yaml`
-- [ ] Update `CHANGELOG.md` with changes
-- [ ] All tests passing on real devices
-- [ ] Documentation complete
-- [ ] Example app tested end-to-end
-- [ ] Platform code reviewed
+- [ ] Version bumped in `pubspec.yaml`
+- [ ] `CHANGELOG.md` updated
+- [ ] All tests passing (`flutter test`)
+- [ ] No lint errors (`dart analyze`)
+- [ ] Example app tested on iOS and Android
 - [ ] No breaking changes (or documented)
-
-## Architecture Decision Record
-
-### Why Singleton?
-
-**Decision**: Use singleton pattern for `NotificationPermissionPro`
-
-**Rationale**:
-- Single source of truth for permission state
-- Consistent caching across app
-- Prevents duplicate permissions checks
-- Simplifies API
-
-**Alternative Considered**: Static methods
-- **Rejected**: Can't maintain state easily
-
-### Why Caching?
-
-**Decision**: Cache status for 5 seconds
-
-**Rationale**:
-- Permission rarely changes within milliseconds
-- Reduces platform calls significantly
-- Improves performance without sacrificing freshness
-- `refresh()` available for manual updates
-
-**Alternative Considered**: No caching
-- **Rejected**: Excessive native calls, poor performance
-
-### Why Separate Storage?
-
-**Decision**: Use dedicated storage layer
-
-**Rationale**:
-- Request history tracking
-- Cache validation
-- Easy testing
-- Potential for custom storage backends
-
-**Alternative Considered**: Store in memory only
-- **Rejected**: Loses request history on app restart
-
-## Future Enhancements
-
-Potential improvements (post-1.0):
-
-1. **Stream API**: Real-time permission change updates
-2. **Multiple Permissions**: Check multiple permissions at once
-3. **Permission Groups**: Group related permissions
-4. **Web Support**: Use Notification API
-5. **Analytics Integration**: Built-in permission events
-6. **Custom Storage**: Allow alternative storage backends
-7. **Telemetry**: Anonymized usage patterns
